@@ -17,16 +17,13 @@ def load_dataset_fn(nth, src_dir="./data"):
     dataset = np.load(dataset_file)
     labels = np.load(label_name)
     dataset = dataset.astype(np.float32)
-    labels_cl = labels[:,[0,1]].astype(np.float32)
-    labels_loc = labels[:,[2,3,4,5]].astype(np.float32)
-    del labels
-    dataset,labels_cl, labels_loc = randomize(dataset,labels_cl,labels_loc)
-    return dataset, labels_cl, labels_loc
+    labels = labels.astype(np.float32)
+    dataset, labels = randomize(dataset,labels)
+    return dataset, labels
    
-def randomize(dataset, labels_cl, labels_loc):
-    permutation = np.random.permutation(labels_cl.shape[0])
+def randomize(dataset, labels):
+    permutation = np.random.permutation(labels.shape[0])
     shuffled_dataset = tf.convert_to_tensor(dataset[permutation])
-    shuffled_labels_cl = tf.convert_to_tensor(labels_cl[permutation])
-    shuffled_labels_loc = tf.convert_to_tensor(labels_loc[permutation])
+    shuffled_labels = tf.convert_to_tensor(labels[permutation])
     
-    return shuffled_dataset, shuffled_labels_cl, shuffled_labels_loc
+    return shuffled_dataset, shuffled_labels
