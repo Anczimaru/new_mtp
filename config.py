@@ -13,7 +13,7 @@ _all_ = ('CLASS',
          "CNN_OUTPUT_SIZE",
          "FILTER_SIZE", "DATA_DIR", "PIC_SRC_DIR", "BG_PIC_SRC_DIR",
          "TRAIN_DIR", "TEST_DIR", "CROOPED_DIR","RESULT_DIR", 
-         "LABEL_ORG", "LABEL_FILE", 
+         "LABEL_ORG", "TFRECORD_NAMES", 
          "LR","KEEP_PROB", "PRINT_NTH","MAX_STEPS","BATCH_SIZE")
 
 CLASS = {'MARKER', 'BACKGROUND'}
@@ -31,6 +31,7 @@ TEST_DIR = os.path.join(DATA_DIR, "test")
 VAL_DIR = os.path.join(DATA_DIR,"validation")
 RESULT_DIR = "results"
 LABEL_ORG = os.path.join(DATA_DIR, "label_org.npy") #orginal labels
+TFRECORD_NAMES = ['train.tfrecords','test.tfrecords','validation.tfrecords']
 
 
 LR = 1e-4
