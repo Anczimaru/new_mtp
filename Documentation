@@ -2,6 +2,7 @@ Sources:
     Neural networks basics and theory:
 "https://github.com/chiphuyen/stanford-tensorflow-tutorials"
 "https://web.stanford.edu/class/cs20si/2017/syllabus.html" <- greatest source of knowledge ever found! :)
+"https://github.com/Anczimaru/TensorFlow-Tutorials" <- great place to start
 
 
     How to build model with use of Class : 
@@ -15,7 +16,7 @@ Sources:
     
     How to make TFRecord : "http://machinelearninguru.com/deep_learning/data_preparation/tfrecord/tfrecord.html"
 "http://warmspringwinds.github.io/tensorflow/tf-slim/2016/12/21/tfrecords-guide/"    
-    Lazy memory loading and use of wrappers
+    
 
     Overall Tensorflow functionality:
 "https://github.com/aymericdamien/TensorFlow-Examples"
