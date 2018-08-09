@@ -43,9 +43,9 @@ def show_label_on_img(n):
     label = labels[n-1]
     img_name = str(n)+".png"
     path_to_file = os.path.join(config.PIC_SRC_DIR,img_name)
+    n=256
     
-    
-    coordinates = ((int(label[1]),int(label[2])),(int(label[3]),int(label[4])))
+    coordinates = ((int(n*label[1]),int(n*label[2])),(int(n*label[3]),int(n*label[4])))
     base = Image.open(path_to_file).convert('RGBA')
     box = Image.new('RGBA',base.size,(255,255,255,0))
     d = ImageDraw.Draw(box)
