@@ -28,3 +28,30 @@ Sources:
 
 
 
+
+
+###COMMENTS
+"""
+Accuracy makes softmax of whole tensor
+
+Find proper l2 loss function(IOU minimalization)
+CHANGE DATA PIPELINE!!!!!!
+get ssh scrypt
+upload prepared dataset
+
+
+
+
+
+TFRECORD STRUCTURE
+feature = {"image" : to_bytes_convert(img.tobytes()),
+                   "class" : to_int_convert(label[0]),
+                   "x1" : to_int_convert(label[1]),
+                   "y1" : to_int_convert(label[2]),
+                   "x2" : to_int_convert(label[3]),
+                   "y2" : to_int_convert(label[4]),
+                   "index" : to_int_convert(index[i])
+
+
+
+"""
