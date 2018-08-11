@@ -33,19 +33,20 @@ def main(do_new_data = True):
     limit_per_part = 100000 #photos per batch
     start_time =time.time()
     put_effect = config.PUT_EFFECTS
-    
-    
-    
-    
+    print(len(os.listdir(config.BG_PIC_SRC_DIR)))
+
+
+
+
     if not os.path.exists(dst_dir): #if dir not present, make it
         os.mkdir(dst_dir)
-        
+
     elif do_new_data == True:
         print("Data directory detected, removing it content")
         shutil.rmtree(dst_dir, ignore_errors=True)
         print("making new dir")
         os.mkdir(dst_dir)
-        
+
     make_data(src_dir,dst_dir,limit_total = number_of_photos,
               limit_per_part=limit_per_part,file_ext = file_ext)
     print('Took: {0} seconds'.format(time.time() - start_time))
@@ -55,7 +56,7 @@ def main(do_new_data = True):
 
 
 def effect_random(src): #put effect randomly on whole image
-  
+
     base =  "image" + "_"
     # making lookup table
     min_table = 50
@@ -78,7 +79,7 @@ def effect_random(src): #put effect randomly on whole image
             LUT_HC[i] = 255
         high_cont_img = cv2.LUT(src, LUT_HC)
          #high contrast
-        
+
         return high_cont_img
     if x==1:
         LUT_LC = np.arange(256, dtype = 'uint8' )
@@ -89,7 +90,7 @@ def effect_random(src): #put effect randomly on whole image
             #LUT_G2[i] = 255 * pow(float(i) / 255, 1.0 / gamma2)
         low_cont_img = cv2.LUT(src, LUT_LC)
           #low contrast
-        
+
         return low_cont_img
     if x==2:
         LUT_G1 = np.arange(256, dtype = 'uint8' )
@@ -97,7 +98,7 @@ def effect_random(src): #put effect randomly on whole image
             LUT_G1[i] = 255 * pow(float(i) / 255, 1.0 / gamma1)
         g1_img=cv2.LUT(src, LUT_G1)
          # when gunnma = 0.5
-        
+
         return g1_img
     if x==3:
         LUT_G2 = np.arange(256, dtype = 'uint8' )
@@ -105,8 +106,8 @@ def effect_random(src): #put effect randomly on whole image
             LUT_G2[i] = 255 * pow(float(i) / 255, 1.0 / gamma2)
         g2_img=cv2.LUT(src, LUT_G2)
         #when gunma = 1.5
-        
-        return g2_img 
+
+        return g2_img
     if x==4:
         row,col,ch= src.shape
         mean = 0
@@ -115,9 +116,9 @@ def effect_random(src): #put effect randomly on whole image
         gauss = gauss.reshape(row,col,ch)
         gauss_img = src + gauss
 
-        
+
         #gaussian noise
-        
+
         return gauss_img
     if x==5:
         row,col,ch = src.shape
@@ -142,8 +143,8 @@ def effect_random(src): #put effect randomly on whole image
 # In[5]:
 
 
-def cvpaste(img, imgback, x, y, angle, scale):  
-        # x and y are the distance from the center of the background image 
+def cvpaste(img, imgback, x, y, angle, scale):
+        # x and y are the distance from the center of the background image
         r = img.shape[0]
         c = img.shape[1]
         rb = imgback.shape[0]
@@ -188,8 +189,8 @@ def cvpaste(img, imgback, x, y, angle, scale):
 def inject_photo(put_effect,background, name, dst_dir,
                  injected_photo=os.path.join(config.DATA_DIR ,"injection.png")):
     """
-    Function makes injection into 'Background' from ' injected_photo', 
-    renames it and places it in dst_dir 
+    Function makes injection into 'Background' from ' injected_photo',
+    renames it and places it in dst_dir
     """
     #Import images
     imgback = cv2.imread(background,-1)
@@ -198,13 +199,13 @@ def inject_photo(put_effect,background, name, dst_dir,
     #Get size
     rows,cols,channels = imgback.shape
     #Random position of injection
-    x=int(random.uniform(-cols/4,cols/4)) # x distancec for x axis from center 
+    x=int(random.uniform(-cols/4,cols/4)) # x distancec for x axis from center
     y=int(random.uniform(-rows/4,cols/4)) # y y distance from center
     angle=int(random.randint(0, 45)) # decide angle from 0 to 360
-    scale=float(random.uniform(0.5,2))    # chose the sholipe logo sacale 
+    scale=float(random.uniform(0.5,2))    # chose the sholipe logo sacale
     #combine everything
     angle = 0
-    
+
     imgpaste = cvpaste(img, imgback, x, y, angle, scale)
     name = os.path.join(dst_dir, name)
     if put_effect == True:
@@ -255,9 +256,9 @@ def make_data(src_dir,dst_dir, put_effect=True, limit_total = 50, file_ext='.png
     current_limit = limit_per_part
     print("creating {} samples".format(limit_total))
     new_dst_dir = dst_dir
-    
+
 #Creation of data
-#Needs photos with 
+#Needs photos with
 #in first part it creates injected photos, in second copies photos
 #Mark with 1 in first coulumn tells that injection is present, in second that it is absent(one-hot code)
     for f in os.listdir(src_dir):
@@ -266,15 +267,15 @@ def make_data(src_dir,dst_dir, put_effect=True, limit_total = 50, file_ext='.png
         #check if file is picture with .png extension
         if f.endswith(file_ext):
             if n == limit_total: break
-            
-                    
+
+
             #PHOTO WITH INJECTION
             n+=1
             new_name = ('{0}.png'.format(n))
             x1,y1,x2,y2,_,_ = inject_photo(put_effect, src_file, new_name, new_dst_dir)
             label[n-1] = [1,x1/256,y1/256,x2/256,y2/256]
-            
-            
+
+
             if only_injected == False:
                 #PHOTO WITHOUT INJECTION
                 n+=1
@@ -282,7 +283,7 @@ def make_data(src_dir,dst_dir, put_effect=True, limit_total = 50, file_ext='.png
                 copy_rename(src_file, new_name, new_dst_dir)
                 #assign labels to array
                 label[n-1] =[0,0,0,0,0]
-            
+
             #Check progress
             if (n%(limit_total/10)==0):
                 print("done {}%".format((n/limit_total)*100))
@@ -299,22 +300,22 @@ def make_data(src_dir,dst_dir, put_effect=True, limit_total = 50, file_ext='.png
 if __name__ == '__main__' :
 
     main()
-    
+
 
 
 # ### In case of conversion
 # img = Image.open('injection.png') <br>
 # img = img.convert('RGB') <br>
 # img.save('injection.png') <br>
-# 
+#
 # ### Check if labels were created
 # check_name = np.load("label.npy") <br>
 # print(check_name) <br>
-# 
+#
 # ### For resizing injection
 # inj = os.path.join(config.DATA_DIR, "injection.png")<br>
 # inj = cv2.imread(inj,-1)<br>
 # print(inj.shape)<br>
 # inj = image_resize(inj, width = 16, height = 16) <br>
 # cv2.imwrite("injection2.png",inj)<br>
-# 
+#

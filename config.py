@@ -8,11 +8,11 @@ import os
 
 
 
-_all_ = ('CLASS', 
+_all_ = ('CLASS',
          "CNN_IN_WIDTH", "CNN_IN_HEIGHT", "CNN_IN_CH", "CNN_SHAPE",
          "CNN_OUTPUT_SIZE",
          "FILTER_SIZE", "DATA_DIR", "PIC_SRC_DIR", "BG_PIC_SRC_DIR",
-         "TRAIN_DIR", "TEST_DIR", "CROOPED_DIR","RESULT_DIR", 
+         "TRAIN_DIR", "TEST_DIR", "CROOPED_DIR","RESULT_DIR",
          "LABEL_ORG", "TFRECORD_NAMES", "GEN_NUM_PIC","PUT_EFFECTS"
          "LR","KEEP_PROB", "PRINT_NTH","MAX_STEPS","BATCH_SIZE")
 #NN settings
@@ -26,7 +26,8 @@ FILTER_SIZE = 5
 #Directories
 DATA_DIR = "data"
 PIC_SRC_DIR = os.path.join(DATA_DIR, "pictures")
-BG_PIC_SRC_DIR = os.path.join(DATA_DIR,"background")
+BG_INSTALL_DIR = os.path.join(DATA_DIR,"background")
+BG_PIC_SRC_DIR = os.path.join(BG_INSTALL_DIR,"images")
 TRAIN_DIR = os.path.join(DATA_DIR, "train")
 TEST_DIR = os.path.join(DATA_DIR, "test")
 VAL_DIR = os.path.join(DATA_DIR,"validation")
@@ -42,4 +43,3 @@ KEEP_PROB = 0.7
 PRINT_NTH = 100
 MAX_STEPS = 100
 BATCH_SIZE = 20
-
