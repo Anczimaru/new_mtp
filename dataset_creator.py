@@ -54,6 +54,8 @@ def createTFRecord(file_name, index):
                    "y1" : to_float_convert(label[2]),
                    "x2" : to_float_convert(label[3]),
                    "y2" : to_float_convert(label[4]),
+                   "x" : to_float_convert(label[5]),
+                   "y" : to_float_convert(label[6]),
                    "index" : to_int_convert(index[i])
 
                   }

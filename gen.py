@@ -204,7 +204,6 @@ def inject_photo(put_effect,background, name, dst_dir,
     angle=int(random.randint(0, 45)) # decide angle from 0 to 360
     scale=float(random.uniform(0.5,2))    # chose the sholipe logo sacale
     #combine everything
-    angle = 0
 
     imgpaste = cvpaste(img, imgback, x, y, angle, scale)
     name = os.path.join(dst_dir, name)
@@ -252,7 +251,7 @@ def make_data(src_dir,dst_dir, put_effect=True, limit_total = 50, file_ext='.png
     #Params
     n = 0; k=1;
     num_pics = len(os.listdir(src_dir))
-    label = np.zeros(shape=(limit_total, 5))
+    label = np.zeros(shape=(limit_total, 7))
     current_limit = limit_per_part
     print("creating {} samples".format(limit_total))
     new_dst_dir = dst_dir
@@ -272,8 +271,8 @@ def make_data(src_dir,dst_dir, put_effect=True, limit_total = 50, file_ext='.png
             #PHOTO WITH INJECTION
             n+=1
             new_name = ('{0}.png'.format(n))
-            x1,y1,x2,y2,_,_ = inject_photo(put_effect, src_file, new_name, new_dst_dir)
-            label[n-1] = [1,x1/256,y1/256,x2/256,y2/256]
+            x1,y1,x2,y2,x,y = inject_photo(put_effect, src_file, new_name, new_dst_dir)
+            label[n-1] = [1,x1/256,y1/256,x2/256,y2/256,x/256,y/256]
 
 
             if only_injected == False:
@@ -282,7 +281,7 @@ def make_data(src_dir,dst_dir, put_effect=True, limit_total = 50, file_ext='.png
                 new_name = ('{0}.png'.format(n))
                 copy_rename(src_file, new_name, new_dst_dir)
                 #assign labels to array
-                label[n-1] =[0,0,0,0,0]
+                label[n-1] =[0,0,0,0,0,0,0]
 
             #Check progress
             if (n%(limit_total/10)==0):

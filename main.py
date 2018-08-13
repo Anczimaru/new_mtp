@@ -42,9 +42,17 @@ print("loaded params")
 
 
 
-def main(remove_results = False):
+def main():
     result_dir = config.RESULT_DIR
+    x = input("Do you want to rerun datacreation?[y/n]")
+    if x == 'y' :
+        os.system("python3 gen.py")
+        os.system("python3 dataset_creator.py")
 
+    x = input("Do you want to remove previous results?[y/n]")
+    if x == 'y':
+        remove_results = True
+    else: remove_results = False
     if remove_results == True:
         shutil.rmtree(result_dir, ignore_errors=True)
     #Check for dirs, if not present make them
@@ -62,7 +70,7 @@ def main(remove_results = False):
 
     #Initialization of Model, load all Model functions returning variables
         model = Model(params,result_dir, ckpt_dir)
-        n_times = 4
+        n_times = 2
         model.train_n_times(result_dir, n_times)
 
 
@@ -71,12 +79,9 @@ def main(remove_results = False):
 
 ### tf.reset_default_graph()
 if __name__ == '__main__':
-    os.system("python3 gen.py")
-    os.system("python3 dataset_creator.py")
-    check = True
-    main(remove_results=check)
-    check = False
-    main(remove_results=check)
+
+    main()
+
 
 
 

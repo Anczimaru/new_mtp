@@ -16,7 +16,7 @@ class Model(object):
 
 ### INITIALIZATION ####
     def __init__(self, params, log_dir,ckpt_dir):
-        #self.permutation = np.random.permutation(range(len(os.listdir(config.PIC_SRC_DIR))))
+
         self.result_dir = log_dir
         self.ckpt_dir = ckpt_dir
         self.img_size = params["img_size"]
@@ -24,17 +24,16 @@ class Model(object):
         self.num_classes = params["num_classes"]
         self.lr = params["learning_rate"]
         self.keep_prob = params["keep_probability"]
-        self.write_step = 10#params["print_nth_step"]
+        self.write_step = 1#params["print_nth_step"]
         self.is_training = True
-        self.global_step = tf.Variable(0, False, dtype = tf.int32, name="global_step")
-        #remove bellow
-        #self.data = tf.placeholder(dtype= tf.float32, shape=[None,256,256,3])
-        #self.target = tf.placeholder(dtype = tf.float32, shape=[None,5])
-        #self.index = tf.placeholder(dtype= tf.int32,shape=[None,1])
+        self.global_step = tf.Variable(0, False, dtype = tf.int64, name="global_step")
+        self.writer = tf.contrib.summary.create_file_writer(self.ckpt_dir)
 
         #FUNCTIONS
         self.data_pipeline
         self.prediction
+        self.classifier
+        self.localizer
         self.loss_op
         self.optimize
         self.summary
@@ -58,14 +57,15 @@ class Model(object):
                                                     train_dataset.output_shapes)
 
 
-        self.train_init = iterator.make_initializer(train_dataset)
-        self.test_init = iterator.make_initializer(test_dataset)
 
 
-        self.data, target, self.index = iterator.get_next()
-        self.target = tf.reshape(target, shape = [5])
+        self.data, target_class, target_loc, self.index, _ = iterator.get_next()
+        self.target_class = tf.cast(tf.reshape(target_class, shape= [1]),dtype=tf.float32)
+        self.target_loc = tf.reshape(target_loc, shape = [2])
         self.data = tf.reshape(self.data,[-1, self.img_size, self.img_size, self.num_channels])
 
+        self.train_init = iterator.make_initializer(train_dataset)
+        self.test_init = iterator.make_initializer(test_dataset)
 
 
 
@@ -124,11 +124,30 @@ class Model(object):
                                     name = 'dropout')
 
         dense2 = tf.layers.dense(inputs = dropout,
-                             units = self.num_classes,
-                             activation = tf.nn.relu,
-                             name = "logits")
+                                    units = 128,
+                                    activation = tf.nn.relu,
+                                    name = "fc_2")
+        return dense2
 
-        return tf.nn.softmax(tf.reshape(dense2, shape=[5]))
+    @define_scope
+    def classifier(self):
+        self.class_pred = tf.layers.dense(inputs = self.prediction,
+                             units = 1,
+                             activation = tf.nn.relu,
+                             name = "fc_classifier")
+
+        return self.class_pred
+
+    @define_scope
+    def localizer(self):
+        self.loc_pred = tf.layers.dense(inputs = self.prediction,
+                                        units = (self.num_classes-1),
+                                        activation = tf.nn.relu,
+                                        name = "fc_localizer")
+        self.loc_pred = tf.reshape(self.loc_pred, shape = [2])
+        return self.loc_pred
+
+
 
 #### LOSS ####
     @define_scope
@@ -136,8 +155,11 @@ class Model(object):
         """
         loss
         """
-        self.loss = tf.losses.mean_squared_error(labels = self.target, predictions = self.prediction)
-
+        loss_loc =  tf.reshape(tf.cast(tf.losses.mean_squared_error(labels = self.target_loc, predictions = self.loc_pred),dtype=tf.float64),shape =[1])
+        loss_cl = tf.reshape(tf.cast(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_class, logits = self.class_pred),dtype=tf.float64),shape =[1])
+        self.loss = tf.add(loss_cl,loss_loc)
+        with self.writer.as_default(), tf.contrib.summary.always_record_summaries():
+            tf.contrib.summary.scalar('loss', self.loss)
         return self.loss
 
 ##### OPTIMIZER #####
@@ -159,15 +181,15 @@ class Model(object):
         '''
         Create summaries to write on TensorBoard
         '''
+
         with tf.name_scope('summaries'):
-            tf.summary.scalar('loss', self.loss)
-            tf.summary.histogram('histogram_loss', self.loss)
-            self.summary_op = tf.summary.merge_all()
+            tf.contrib.summary.scalar('loss', self.loss)
+            pass
 
 
 
 #### TRAIN ###
-    def train_one_time(self, sess, ckpt_dir, writer, saver, step, epoch):
+    def train_one_time(self, sess, ckpt_dir, saver, step, epoch):
         """
         Training op for model
         """
@@ -180,14 +202,14 @@ class Model(object):
         try :
             while True:
                 #train
-                l, _,summary = sess.run([self.loss_op, self.optimize, self.summary_op])
-                writer.add_summary(summary, global_step=step)
-                if (step) % self.write_step == 0:
-                    print('Loss at step {0}: {1}'.format(step, l))
+                l, _,summary = sess.run([self.loss_op, self.optimize, tf.contrib.summary.all_summary_ops()])
+                #writer.add_summary(self.summary, global_step=step)
                 total_loss += l
                 num_batches += 1
                 step+=1
                 self.global_step = tf.convert_to_tensor(step)
+                if (step) % self.write_step == 0:
+                    print('Loss at step {0}: {1}'.format(self.global_step.eval(), l))
         except tf.errors.OutOfRangeError:
             pass
         except KeyboardInterrupt:
@@ -200,19 +222,21 @@ class Model(object):
 
 
  #### EVALUATE ####
-    def evaluate(self, sess, writer, step, epoch):
+    def evaluate(self, sess, step, epoch):
         """
         Evaluate once from test
         """
         start_time = time.time()
         sess.run(self.test_init)
         self.is_training = False
+        total_loss = 0
         try:
-            l, summary = sess.run([self.loss_op, self.summary_op])
-            writer.add_summary(summary, global_step=step)
+            l, summary = sess.run([self.loss_op, tf.contrib.summary.all_summary_ops()])
+            #writer.add_summary(self.summary, global_step=step)
+            total_loss +=l
         except tf.errors.OutOfRangeError:
             pass
-        print('Loss at validaiton epoch {0}: {1}'.format(epoch, l))
+        print('Average loss at validaiton epoch {0}: {1}'.format(epoch, total_loss))
         print('Took: {0} seconds'.format(time.time() - start_time))
 
 
@@ -225,8 +249,6 @@ class Model(object):
             #Assign name to session, assign it's default graph as graph
             with tf.Session() as sess:
 
-                #Creating summary writer
-                writer = tf.summary.FileWriter(self.ckpt_dir)
 
                 #Creating save for model session for future saving and restoring model
                 saver = tf.train.Saver()
@@ -238,31 +260,35 @@ class Model(object):
                     saver.restore(sess, ckpt.model_checkpoint_path)
                     print("Found checkpoint")
                     step = int(os.path.basename(ckpt.model_checkpoint_path).split('-')[1])
+
                 else:
                     #Assign Initializer
                     init = tf.global_variables_initializer()
                     sess.run(init)
                     step = 0
 
+                self.global_step = tf.cast(step, dtype = tf.int64)
+                with self.writer.as_default(), tf.contrib.summary.always_record_summaries():
+                    tf.contrib.summary.initialize(graph=tf.get_default_graph())
 
-                print("Current step: {0}".format(step))
-                #Add graph
-                writer.add_graph(tf.get_default_graph())
-                #Training
-                print("Starting Training")
-                for epoch in range(1,n_times+1):
-                    try:
-                        step = self.train_one_time(sess, self.ckpt_dir, writer, saver, step, epoch)
-                        self.evaluate(sess,writer,step,epoch)
-                    except KeyboardInterrupt:
-                        print("keyboard interrupt")
-                        pass
-                print("Closing session and saving results")
-                print(self.global_step.eval(), step)
-                saver.save(sess, self.ckpt_dir, global_step = step)
 
-            #Merge all summaries
-            writer.flush()
-            #writer.add_graph(graph)
-            writer.close()
+                    #Creating summary writer
+
+
+
+                    print("Current step: {0}".format(step))
+                    #Training
+                    print("Starting Training")
+                    for epoch in range(1,n_times+1):
+                        try:
+                            step = self.train_one_time(sess, self.ckpt_dir, saver, step, epoch)
+                            self.evaluate(sess,step,epoch)
+                        except KeyboardInterrupt:
+                            print("keyboard interrupt")
+                            pass
+                    print("Closing session and saving results")
+                    print(self.global_step.eval(), step)
+                    saver.save(sess, self.ckpt_dir, global_step = step)
+
+            self.writer.flush()
             print("Closed summary, work finnished")

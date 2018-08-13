@@ -21,6 +21,8 @@ def parser(serialized_data):
                    "y1" : tf.FixedLenFeature((),tf.float32),
                    "x2" : tf.FixedLenFeature((),tf.float32),
                    "y2" : tf.FixedLenFeature((),tf.float32),
+                   "x" : tf.FixedLenFeature((),tf.float32),
+                   "y" : tf.FixedLenFeature((),tf.float32),
                    "index" : tf.FixedLenFeature((),tf.int64)}
     parsed_features = tf.parse_single_example(serialized_data, features)
 
@@ -28,15 +30,20 @@ def parser(serialized_data):
     image = tf.decode_raw(image_string, tf.uint8)
     image = tf.cast(image,dtype=tf.float32)
 
+    label_class = tf.convert_to_tensor(parsed_features["class"])
+    label_class = tf.cast(label_class,tf.float32)
 
-    label = tf.convert_to_tensor((tf.cast(parsed_features["class"], tf.float32),
+    label_loc = tf.convert_to_tensor((
+                     parsed_features["x"],
+                     parsed_features["y"]))
+    box = tf.convert_to_tensor((
                      parsed_features["x1"],
                      parsed_features["y1"],
                      parsed_features["x2"],
                      parsed_features["y2"]))
     index = tf.cast(parsed_features["index"], tf.int32)
 
-    return image, label, index
+    return image, label_class, label_loc, index, box
 
 
 
@@ -72,14 +79,29 @@ def main():
                                         .int64_list
                                         .value[0])
 
+        cl =(example.features.feature['class']
+                                        .int64_list
+                                        .value[0])
+
         img_string = (example.features.feature['image']
                                       .bytes_list
                                       .value[0])
+        x = (example.features.feature['x']
+                                     .float_list
+                                     .value[0])
 
+        y = (example.features.feature['y']
+                                     .float_list
+                                     .value[0])
 
-    img_1d = np.fromstring(img_string, dtype=np.uint8)
-    reconstructed_img = img_1d.reshape((256, 256, -1))
+        print(index)
+        print(cl)
+        print(x1,y1,x2,y2)
+        print(x,y)
+    #img_1d = np.fromstring(img_string, dtype=np.uint8)
+    #reconstructed_img = img_1d.reshape((256, 256, -1))
+    #my_tools.show_opened_image(reconstructed_img)
 
-    print(index)
-    print(x1,y1,x2,y2)
-    my_tools.show_opened_image(reconstructed_img)
+if __name__ == '__main__':
+
+    main()
