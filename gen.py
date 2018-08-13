@@ -34,7 +34,7 @@ def main(do_new_data = True):
     start_time =time.time()
     put_effect = config.PUT_EFFECTS
     print(len(os.listdir(config.BG_PIC_SRC_DIR)))
-
+    only_injected = config.ONLY_INJECTED
 
 
 
@@ -48,7 +48,7 @@ def main(do_new_data = True):
         os.mkdir(dst_dir)
 
     make_data(src_dir,dst_dir,limit_total = number_of_photos,
-              limit_per_part=limit_per_part,file_ext = file_ext)
+              limit_per_part=limit_per_part,file_ext = file_ext, only_injected = only_injected)
     print('Took: {0} seconds'.format(time.time() - start_time))
 
 

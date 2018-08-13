@@ -4,11 +4,42 @@
 # In[ ]:
 
 
-import tensorflow
+import tensorflow as tf
 import os
 import config
 import my_tools
-import numpy as np 
+import numpy as np
+
+def parser(serialized_data):
+    """
+    Decode and map data properly
+    """
+
+    features = {"image" : tf.FixedLenFeature((),tf.string),
+                   "class" : tf.FixedLenFeature((),tf.int64),
+                   "x1" : tf.FixedLenFeature((),tf.float32),
+                   "y1" : tf.FixedLenFeature((),tf.float32),
+                   "x2" : tf.FixedLenFeature((),tf.float32),
+                   "y2" : tf.FixedLenFeature((),tf.float32),
+                   "index" : tf.FixedLenFeature((),tf.int64)}
+    parsed_features = tf.parse_single_example(serialized_data, features)
+
+    image_string = parsed_features["image"]
+    image = tf.decode_raw(image_string, tf.uint8)
+    image = tf.cast(image,dtype=tf.float32)
+
+
+    label = tf.convert_to_tensor((tf.cast(parsed_features["class"], tf.float32),
+                     parsed_features["x1"],
+                     parsed_features["y1"],
+                     parsed_features["x2"],
+                     parsed_features["y2"]))
+    index = tf.cast(parsed_features["index"], tf.int32)
+
+    return image, label, index
+
+
+
 
 def main():
     path_to_record = os.path.join(config.DATA_DIR,config.TFRECORD_NAMES[0])
@@ -44,12 +75,11 @@ def main():
         img_string = (example.features.feature['image']
                                       .bytes_list
                                       .value[0])
-    
-    
+
+
     img_1d = np.fromstring(img_string, dtype=np.uint8)
     reconstructed_img = img_1d.reshape((256, 256, -1))
-    
+
     print(index)
     print(x1,y1,x2,y2)
     my_tools.show_opened_image(reconstructed_img)
-

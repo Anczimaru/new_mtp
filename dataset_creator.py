@@ -55,16 +55,16 @@ def createTFRecord(file_name, index):
                    "x2" : to_float_convert(label[3]),
                    "y2" : to_float_convert(label[4]),
                    "index" : to_int_convert(index[i])
-                          
+
                   }
-        
+
         example = tf.train.Example(features=tf.train.Features(feature=feature))
         writer.write(example.SerializeToString())
-        
+
     writer.close()
     sys.stdout.flush()
-        
-        
+
+
 
 
 # In[5]:
@@ -82,20 +82,20 @@ def main(src_dir, dst_dir, src_labels, force = False):
     if force == True:
         for n in range(0,3):
             to_rm = os.path.join(config.DATA_DIR, names[n])
-            if os.path.exists(to_rm):   
+            if os.path.exists(to_rm):
                 print("removing")
                 os.remove(to_rm)
-                
+
     index = np.random.permutation(labels.shape[0])
     train_index = index[0:int(0.6*len(index))]
     test_index = index[int(0.6*len(index)):int(0.8*len(index))]
     val_index = index[int(0.8*len(index)):]
-    
+
     createTFRecord(names[0], train_index)
     print("created train record")
-    #createTFRecord(names[1], test_index)
+    createTFRecord(names[1], test_index)
     print("created test record")
-    #createTFRecord(names[2], val_index)
+    createTFRecord(names[2], val_index)
     print("created val record")
 
 
@@ -104,4 +104,3 @@ def main(src_dir, dst_dir, src_labels, force = False):
 
 if __name__ == '__main__' :
     main(src_dir, dst_dir, src_labels, force = True)
-
