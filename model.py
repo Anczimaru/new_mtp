@@ -26,8 +26,12 @@ class Model(object):
         self.keep_prob = params["keep_probability"]
         self.write_step = 1#params["print_nth_step"]
         self.is_training = True
-        self.global_step = tf.Variable(0, False, dtype = tf.int64, name="global_step")
+        self.global_step = tf.train.get_or_create_global_step(graph=tf.get_default_graph())
+
+
         self.writer = tf.contrib.summary.create_file_writer(self.ckpt_dir)
+        with self.writer.as_default():
+            tf.contrib.summary.always_record_summaries()
 
         #FUNCTIONS
         self.data_pipeline
@@ -35,8 +39,8 @@ class Model(object):
         self.classifier
         self.localizer
         self.loss_op
+        self.summary_op
         self.optimize
-        self.summary
 
 
 
@@ -158,9 +162,18 @@ class Model(object):
         loss_loc =  tf.reshape(tf.cast(tf.losses.mean_squared_error(labels = self.target_loc, predictions = self.loc_pred),dtype=tf.float64),shape =[1])
         loss_cl = tf.reshape(tf.cast(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_class, logits = self.class_pred),dtype=tf.float64),shape =[1])
         self.loss = tf.add(loss_cl,loss_loc)
-        with self.writer.as_default(), tf.contrib.summary.always_record_summaries():
-            tf.contrib.summary.scalar('loss', self.loss)
         return self.loss
+
+    @define_scope
+    def summary_op(self):
+        with self.writer.as_default():
+            with tf.contrib.summary.record_summaries_every_n_global_steps(1):
+                tf.contrib.summary.scalar('loss', self.loss)
+            self.summary = tf.contrib.summary.all_summary_ops()
+        return self.summary
+
+
+
 
 ##### OPTIMIZER #####
     @define_scope
@@ -168,23 +181,10 @@ class Model(object):
         """
         Optimizer of model
         """
-        self.opt = tf.train.AdamOptimizer(learning_rate=self.lr).minimize(self.loss, global_step=self.global_step)
-        a = tf.cast(1,tf.int32) #trash line so fetcher doesnt return errors
-        return a
+        self.opt = tf.train.AdamOptimizer(learning_rate=self.lr).minimize(self.loss, global_step=tf.train.get_global_step())
+        return self.opt
 
 
-
-
-###summary####
-    @define_scope
-    def summary(self):
-        '''
-        Create summaries to write on TensorBoard
-        '''
-
-        with tf.name_scope('summaries'):
-            tf.contrib.summary.scalar('loss', self.loss)
-            pass
 
 
 
@@ -202,12 +202,11 @@ class Model(object):
         try :
             while True:
                 #train
-                l, _,summary = sess.run([self.loss_op, self.optimize, tf.contrib.summary.all_summary_ops()])
-                #writer.add_summary(self.summary, global_step=step)
+                l, _, _ = sess.run([self.loss_op, self.summary_op, self.optimize])
                 total_loss += l
                 num_batches += 1
                 step+=1
-                self.global_step = tf.convert_to_tensor(step)
+                #self.global_step = tf.convert_to_tensor(step)
                 if (step) % self.write_step == 0:
                     print('Loss at step {0}: {1}'.format(self.global_step.eval(), l))
         except tf.errors.OutOfRangeError:
@@ -231,9 +230,8 @@ class Model(object):
         self.is_training = False
         total_loss = 0
         try:
-            l, summary = sess.run([self.loss_op, tf.contrib.summary.all_summary_ops()])
-            #writer.add_summary(self.summary, global_step=step)
-            total_loss +=l
+            l,_ = sess.run([self.loss_op, self.summary_op])
+            total_loss += l
         except tf.errors.OutOfRangeError:
             pass
         print('Average loss at validaiton epoch {0}: {1}'.format(epoch, total_loss))
@@ -248,33 +246,29 @@ class Model(object):
             print("Starting Session")
             #Assign name to session, assign it's default graph as graph
             with tf.Session() as sess:
+                with self.writer.as_default():
 
 
-                #Creating save for model session for future saving and restoring model
-                saver = tf.train.Saver()
+                    #Creating save for model session for future saving and restoring model
+                    saver = tf.train.Saver()
 
-                #Loading last checkpoint
-                ckpt = tf.train.get_checkpoint_state(self.result_dir)
-                if ckpt and ckpt.model_checkpoint_path:
-                    #if ckpt found load it and load global step
-                    saver.restore(sess, ckpt.model_checkpoint_path)
-                    print("Found checkpoint")
-                    step = int(os.path.basename(ckpt.model_checkpoint_path).split('-')[1])
+                    #Loading last checkpoint
+                    ckpt = tf.train.get_checkpoint_state(self.result_dir)
+                    if ckpt and ckpt.model_checkpoint_path:
+                        #if ckpt found load it and load global step
+                        saver.restore(sess, ckpt.model_checkpoint_path)
+                        print("Found checkpoint")
+                        step = int(os.path.basename(ckpt.model_checkpoint_path).split('-')[1])
 
-                else:
-                    #Assign Initializer
-                    init = tf.global_variables_initializer()
-                    sess.run(init)
-                    step = 0
+                    else:
+                        #Assign Initializer
+                        init = tf.global_variables_initializer()
+                        sess.run(init)
+                        step = 0
 
-                self.global_step = tf.cast(step, dtype = tf.int64)
-                with self.writer.as_default(), tf.contrib.summary.always_record_summaries():
+                    #self.global_step = tf.cast(step, dtype = tf.int64)
+
                     tf.contrib.summary.initialize(graph=tf.get_default_graph())
-
-
-                    #Creating summary writer
-
-
 
                     print("Current step: {0}".format(step))
                     #Training
@@ -288,7 +282,9 @@ class Model(object):
                             pass
                     print("Closing session and saving results")
                     print(self.global_step.eval(), step)
+
                     saver.save(sess, self.ckpt_dir, global_step = step)
 
-            self.writer.flush()
+                    self.writer.flush()
+
             print("Closed summary, work finnished")
