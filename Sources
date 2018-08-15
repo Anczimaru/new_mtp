@@ -5,19 +5,19 @@ Sources:
 "https://github.com/Anczimaru/TensorFlow-Tutorials" <- great place to start
 
 
-    How to build model with use of Class : 
+    How to build model with use of Class :
 "https://github.com/chiphuyen/stanford-tensorflow-tutorials/blob/master/examples/07_convnet_layers.py"
-    
-    
+
+
     "Lazy memory loading" how to use it in tensor and how to use wrappers:
 "https://danijar.com/structuring-your-tensorflow-models/"
 "https://blog.apcelent.com/python-decorator-tutorial-with-example.html"
 
-    
+
     How to make TFRecord :
 "http://machinelearninguru.com/deep_learning/data_preparation/tfrecord/tfrecord.html"
-"http://warmspringwinds.github.io/tensorflow/tf-slim/2016/12/21/tfrecords-guide/"    
-    
+"http://warmspringwinds.github.io/tensorflow/tf-slim/2016/12/21/tfrecords-guide/"
+
 
     Overall Tensorflow functionality:
 "https://github.com/aymericdamien/TensorFlow-Examples"
@@ -29,29 +29,5 @@ Sources:
 
 
 
-
-###COMMENTS
-"""
-Accuracy makes softmax of whole tensor
-
-Find proper l2 loss function(IOU minimalization)
-CHANGE DATA PIPELINE!!!!!!
-get ssh scrypt
-upload prepared dataset
-
-
-
-
-
-TFRECORD STRUCTURE
-feature = {"image" : to_bytes_convert(img.tobytes()),
-                   "class" : to_int_convert(label[0]),
-                   "x1" : to_int_convert(label[1]),
-                   "y1" : to_int_convert(label[2]),
-                   "x2" : to_int_convert(label[3]),
-                   "y2" : to_int_convert(label[4]),
-                   "index" : to_int_convert(index[i])
-
-
-
-"""
+    Summary API v2:
+"https://medium.com/@konpat/tensorflow-summary-api-v2-5fa760d04680"

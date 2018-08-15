@@ -1,9 +1,4 @@
-
 # coding: utf-8
-
-# In[1]:
-
-
 import tensorflow as tf
 import sys
 import os
@@ -14,14 +9,13 @@ import numpy as np
 from model import Model as Model
 import random
 
+
+
 print("loaded libs")
 
-
-# In[2]:
-
-
+##Read all parameters from config.py file
 params = {"root_result_dir": config.RESULT_DIR,
-          "learning_rate": 1e-4,
+          "learning_rate": config.LR,
           "img_size": config.CNN_IN_HEIGHT,
           "num_channels":config.CNN_IN_CH,
           "num_classes": config.CNN_OUTPUT_SIZE,
@@ -31,23 +25,26 @@ params = {"root_result_dir": config.RESULT_DIR,
 print("loaded params")
 
 
-def gen_log_dir_name(n=0,learning_rate = params["learning_rate"],
-                     num_classes = params["num_classes"],
-                     root_result_dir = config.RESULT_DIR):
+def gen_log_dir_name(n = 0, learning_rate = params["learning_rate"], num_classes = params["num_classes"], root_result_dir = config.RESULT_DIR):
     """
     Generate new name for directory
     """
+
     r = n
     word = ["alpha", "beta", "gamma", "delta", "kappa", "epsilon"]
-    if r == 6:
+    #Failsafe for big numbers of directories, and debugging
+    if r >= 6:
         print("Please review your results, number of directories is pretty high")
-        symbol = random.randint
+        symbol = r
     else:
         symbol = word[n]
-    s = "lr_{0:.0e}_classes_{1}_{2}"
+
+    s = "lr_{0:.0e}_classes_{1}_{2}" #Genereate name string
     # Insert all the hyper-parameters in the dir-name.
     log_dir_name = str(s.format(learning_rate,num_classes,symbol))
     log_dir = os.path.join(root_result_dir, log_dir_name)
+
+
     if not os.path.exists(log_dir):
         return log_dir
     else:
@@ -57,6 +54,7 @@ def get_log_dir_name(result_root_dir = config.RESULT_DIR):
     """
     Generete new directory or load existing one
     """
+
     #### LOAD EXISTING DIR
     x = input("do you want to load existing directory?[y/n]")
     if x == "y":
@@ -82,11 +80,17 @@ def get_log_dir_name(result_root_dir = config.RESULT_DIR):
         if x2 == "y":
             log_dir = gen_log_dir_name()
             print(log_dir)
+            return log_dir
         else: get_log_dir_name()
 
-def main(quick_start = False):
-    quick_start = True
-    if quick_start == False:
+def main(debug_mode = 0):
+    """
+    Main Executable funtion, controlling whole work flow
+    """
+
+    debug_mode = input("Put 1 for full run, else for debug run")
+    if debug_mode == "1":
+        #server run mode
         result_dir = config.RESULT_DIR
         x = input("Do you want to rerun datacreation?[y/n]")
         if x == 'y' :
@@ -96,13 +100,14 @@ def main(quick_start = False):
         if not os.path.exists(config.RESULT_DIR):
             os.makedirs(config.RESULT_DIR)
 
-        log_dir = get_log_dir_name()
+        log_dir = str(get_log_dir_name())
         x = input("How many times you want to go through dataset?")
         n_times = int(x)
 
 
     else:
-        n_times = 2
+        #Quickstart of program
+        n_times = 1
         log_dir = gen_log_dir_name()
 
 
@@ -112,27 +117,15 @@ def main(quick_start = False):
 
 
 
-    tf.reset_default_graph()
-
-    graph = tf.Graph()
-    #Get name as default graph
-    with graph.as_default():
-
-
-
-    #Initialization of Model, load all Model functions returning variables
-        model = Model(params,log_dir,log_dir)
-        model.train_n_times(log_dir, n_times)
-
-
+######Initialization of Model, load all Model functions returning variables
+    model = Model(params,log_dir,log_dir) # Initialize model
+    model.train_n_times(log_dir, n_times) #run training session
 
 
 
 if __name__ == '__main__':
 
     main()
-
-
 
 
 

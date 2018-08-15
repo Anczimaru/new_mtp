@@ -1,9 +1,4 @@
-
 # coding: utf-8
-
-# In[2]:
-
-
 import numpy as np #!
 from PIL import Image, ImageDraw
 import PIL #!
@@ -17,8 +12,6 @@ import sys
 import time #!
 import config
 
-
-# In[3]:
 
 
 def main(do_new_data = True):
@@ -51,8 +44,6 @@ def main(do_new_data = True):
               limit_per_part=limit_per_part,file_ext = file_ext, only_injected = only_injected)
     print('Took: {0} seconds'.format(time.time() - start_time))
 
-
-# In[4]:
 
 
 def effect_random(src): #put effect randomly on whole image
@@ -140,8 +131,6 @@ def effect_random(src): #put effect randomly on whole image
         return out
 
 
-# In[5]:
-
 
 def cvpaste(img, imgback, x, y, angle, scale):
         # x and y are the distance from the center of the background image
@@ -182,8 +171,6 @@ def cvpaste(img, imgback, x, y, angle, scale):
         return imgpaste
 
 
-# In[6]:
-
 
 #Proceed with injetion on background photo
 def inject_photo(put_effect,background, name, dst_dir,
@@ -204,7 +191,7 @@ def inject_photo(put_effect,background, name, dst_dir,
     angle=int(random.randint(0, 45)) # decide angle from 0 to 360
     scale=float(random.uniform(0.5,2))    # chose the sholipe logo sacale
     #combine everything
-
+    angle = 0
     imgpaste = cvpaste(img, imgback, x, y, angle, scale)
     name = os.path.join(dst_dir, name)
     if put_effect == True:
@@ -222,8 +209,6 @@ def inject_photo(put_effect,background, name, dst_dir,
     return x1,y1,x2,y2,x,y
 
 
-# In[7]:
-
 
 #Not in use, left for possible future use
 def copy_rename(background,name, dst_dir):
@@ -240,8 +225,6 @@ def copy_rename(background,name, dst_dir):
     cv2.imwrite(name, new_img)
 
 
-# In[8]:
-
 
 def make_data(src_dir,dst_dir, put_effect=True, limit_total = 50, file_ext='.png', limit_per_part=10, only_injected = True):
     """
@@ -249,6 +232,7 @@ def make_data(src_dir,dst_dir, put_effect=True, limit_total = 50, file_ext='.png
     Please overwrite default parameters when calling, defaults used for debugging
     """
     #Params
+    mu = config.MU
     n = 0; k=1;
     num_pics = len(os.listdir(src_dir))
     label = np.zeros(shape=(limit_total, 7))
@@ -272,7 +256,7 @@ def make_data(src_dir,dst_dir, put_effect=True, limit_total = 50, file_ext='.png
             n+=1
             new_name = ('{0}.png'.format(n))
             x1,y1,x2,y2,x,y = inject_photo(put_effect, src_file, new_name, new_dst_dir)
-            label[n-1] = [1,x1/256,y1/256,x2/256,y2/256,x/256,y/256]
+            label[n-1] = [1,x1*mu,y1*mu,x2*mu,y2*mu,x*mu,y*mu]
 
 
             if only_injected == False:
@@ -292,8 +276,6 @@ def make_data(src_dir,dst_dir, put_effect=True, limit_total = 50, file_ext='.png
         np.save(label_dst,label)
     print("Created {} files".format(n))
 
-
-# In[9]:
 
 
 if __name__ == '__main__' :

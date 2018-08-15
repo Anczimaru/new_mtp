@@ -1,11 +1,7 @@
-
 # coding: utf-8
-
-# In[1]:
-
-
 import os
 import config
+
 
 x = input("Do you want to install all neccessary elements?[y/n]")
 if x =="y":
@@ -17,7 +13,6 @@ if x =="y":
     os.system('pip3 install opencv-python')
     os.system('pip3 install matplotlib')
 
-#sudo apt install python-tk
 
 print("Creating directories")
 data_dir = config.DATA_DIR
@@ -25,7 +20,7 @@ if not os.path.exists(data_dir): #if dir not present, make it
     os.mkdir(data_dir)
 
 
-
+#Download dataset from google drive and unpack it
 x = input("Do you want to download pictures?[y/n]")
 if x =="y":
     import install_helper

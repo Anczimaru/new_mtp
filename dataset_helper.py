@@ -1,18 +1,15 @@
-
 # coding: utf-8
-
-# In[ ]:
-
-
 import tensorflow as tf
 import os
 import config
 import my_tools
 import numpy as np
 
+
+
 def parser(serialized_data):
     """
-    Decode and map data properly
+    Decode and map data properly for model.py
     """
 
     features = {"image" : tf.FixedLenFeature((),tf.string),
@@ -26,6 +23,7 @@ def parser(serialized_data):
                    "index" : tf.FixedLenFeature((),tf.int64)}
     parsed_features = tf.parse_single_example(serialized_data, features)
 
+    #Convert data to proper formats
     image_string = parsed_features["image"]
     image = tf.decode_raw(image_string, tf.uint8)
     image = tf.cast(image,dtype=tf.float32)
@@ -47,8 +45,10 @@ def parser(serialized_data):
 
 
 
-
 def main():
+    """
+    If you with to check structure of TFRecord run this funciton, it prints out every information from TFRecords created by dataset_creator.py
+    """
     path_to_record = os.path.join(config.DATA_DIR,config.TFRECORD_NAMES[0])
     record_iterator = tf.python_io.tf_record_iterator(path=path_to_record)
 
@@ -98,9 +98,8 @@ def main():
         print(cl)
         print(x1,y1,x2,y2)
         print(x,y)
-    #img_1d = np.fromstring(img_string, dtype=np.uint8)
-    #reconstructed_img = img_1d.reshape((256, 256, -1))
-    #my_tools.show_opened_image(reconstructed_img)
+
+
 
 if __name__ == '__main__':
 

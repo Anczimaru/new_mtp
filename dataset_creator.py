@@ -1,9 +1,4 @@
-
 # coding: utf-8
-
-# In[1]:
-
-
 import sys
 import PIL
 import numpy as np
@@ -15,16 +10,12 @@ import my_tools
 from my_tools import get_image_with_label as get_image
 
 
-# In[2]:
-
-
+#Variables from config
 img_size = config.CNN_IN_HEIGHT
 src_dir = config.PIC_SRC_DIR
 dst_dir = config.DATA_DIR
 src_labels = config.LABEL_ORG
 
-
-# In[3]:
 
 
 #Get conversions for TFRecord type file
@@ -35,8 +26,6 @@ def to_int_convert(value):
 def to_bytes_convert(value):
     return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
 
-
-# In[4]:
 
 
 def createTFRecord(file_name, index):
@@ -68,10 +57,6 @@ def createTFRecord(file_name, index):
 
 
 
-
-# In[5]:
-
-
 def main(src_dir, dst_dir, src_labels, force = False):
     """
     Creates 3 datasets divided 6:2:2, train,test,val
@@ -88,10 +73,11 @@ def main(src_dir, dst_dir, src_labels, force = False):
                 print("removing")
                 os.remove(to_rm)
 
+    #Generate permutation for dataset and split indexes for creating Records into proper sets
     index = np.random.permutation(labels.shape[0])
-    train_index = index[0:int(0.6*len(index))]
-    test_index = index[int(0.6*len(index)):int(0.8*len(index))]
-    val_index = index[int(0.8*len(index)):]
+    train_index = index[0:int(0.7*len(index))]
+    test_index = index[int(0.7*len(index)):int(0.9*len(index))]
+    val_index = index[int(0.9*len(index)):]
 
     createTFRecord(names[0], train_index)
     print("created train record")
@@ -99,9 +85,6 @@ def main(src_dir, dst_dir, src_labels, force = False):
     print("created test record")
     createTFRecord(names[2], val_index)
     print("created val record")
-
-
-# In[6]:
 
 
 if __name__ == '__main__' :
