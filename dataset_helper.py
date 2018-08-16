@@ -49,7 +49,7 @@ def main():
     """
     If you with to check structure of TFRecord run this funciton, it prints out every information from TFRecords created by dataset_creator.py
     """
-    path_to_record = os.path.join(config.DATA_DIR,config.TFRECORD_NAMES[0])
+    path_to_record = os.path.join(config.DATA_DIR,config.TFRECORD_NAMES[1])
     record_iterator = tf.python_io.tf_record_iterator(path=path_to_record)
 
     for string_record in record_iterator:

@@ -54,6 +54,22 @@ def show_label_on_img(n):
     out = Image.alpha_composite(base, box)
     show_opened_image(out)
 
+def plot_result_on_img(n, label):
+    """
+    Give coordinates, returns ploted results on image
+    """
+    img_name = str(n)+".png"
+    path_to_file = os.path.join(config.PIC_SRC_DIR,img_name)
+    n=1/config.MU
+
+    coordinates = ((int(n*label[0]),int(n*label[1])),(int(n*label[2]),int(n*label[3])))
+    base = Image.open(path_to_file).convert('RGBA')
+    box = Image.new('RGBA',base.size,(255,255,255,0))
+    d = ImageDraw.Draw(box)
+    d.rectangle(coordinates,outline=(255,0,0,255))
+    out = Image.alpha_composite(base, box)
+    return out
+
 
 def box_iou(boxA, boxB):
 
@@ -72,6 +88,34 @@ def box_iou(boxA, boxB):
 	return interArea/(union + 0.0001)
 
 #Define wrappers for memmory loading funcitons and variables by model.py
+
+def tf_box_iou(bboxes1, bboxes2):
+    """
+    get tf iou calculated
+    """
+
+    x11, y11, x12, y12 = tf.split(bboxes1, [1,1,1,1])
+    x21, y21, x22, y22 = tf.split(bboxes2, [1,1,1,1])
+
+    xI1 = tf.maximum(x11, tf.transpose(x21))
+    xI2 = tf.minimum(x12, tf.transpose(x22))
+
+    yI1 = tf.minimum(y11, tf.transpose(y21))
+    yI2 = tf.maximum(y12, tf.transpose(y22))
+
+    inter_area = tf.maximum((xI2 - xI1), 0) * tf.maximum((yI1 - yI2), 0)
+
+    bboxes1_area = (x12 - x11) * (y11 - y12)
+    bboxes2_area = (x22 - x21) * (y21 - y22)
+
+    union = (bboxes1_area + tf.transpose(bboxes2_area)) - inter_area
+
+    # some invalid boxes should have iou of 0 instead of NaN
+    # If inter_area is 0, then this result will be 0; if inter_area is
+    # not 0, then union is not too, therefore adding a epsilon is OK.
+    return inter_area / (union+0.0001)
+
+
 
 def doublewrap(function):
     """

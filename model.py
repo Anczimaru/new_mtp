@@ -30,17 +30,13 @@ class Model(object):
             self.global_step = tf.train.get_or_create_global_step(graph=tf.get_default_graph())
 
 
-            self.writer = tf.contrib.summary.create_file_writer(self.ckpt_dir)
-            with self.writer.as_default():
-                tf.contrib.summary.always_record_summaries()
-
-
         #FUNCTIONS AND OPS INITIALIZATION, IMPORTANT!!
         self.data_pipeline
         self.prediction
         self.loss_op
         self.summary_op
         self.optimize
+
 
 
 #FUNCTION DEFINITIONS
@@ -160,15 +156,13 @@ class Model(object):
     @define_scope
     def summary_op(self):
         """
-        Summary creator, uses tf.contrib.summary for summary creation
+        Summary creator
         """
-
-        with tf.name_scope("summary"):
-            with self.writer.as_default():
-                with tf.contrib.summary.record_summaries_every_n_global_steps(1):
-                    tf.contrib.summary.scalar('loss', self.loss)
-                self.summary = tf.contrib.summary.all_summary_ops()
-            return self.summary
+        with tf.name_scope('summaries'):
+            tf.summary.scalar('loss', self.loss)
+            tf.summary.histogram('histogram_loss', self.loss)
+            self.summary = tf.summary.merge_all()
+        return self.summary
 
 
 
@@ -185,7 +179,7 @@ class Model(object):
 
 
 #### TRAIN ###
-    def train_one_time(self, sess, ckpt_dir, saver, step, epoch):
+    def train_one_time(self, sess, writer, ckpt_dir, saver, step, epoch):
         """
         Train on whole training dataset
         """
@@ -200,7 +194,8 @@ class Model(object):
         try :
             while True:
                 #train,get loss op, then gen summary, then optimize
-                l, _, _ = sess.run([self.loss_op, self.summary_op, self.optimize])
+                l, summary, _ = sess.run([self.loss_op, self.summary_op, self.optimize])
+                writer.add_summary(summary, global_step=step)
                 total_loss += l
                 num_batches += 1
                 recent_loss +=l
@@ -213,15 +208,16 @@ class Model(object):
         except KeyboardInterrupt:
             print("keyboard interrupt")
             pass
-        saver.save(sess, ckpt_dir, global_step = step) #save checkpoint
+        saver.save(sess, ckpt_dir, global_step = self.global_step.eval()) #save checkpoint
         #Print some info
         print('Average loss at epoch {0}: {1}'.format(epoch, total_loss/num_batches))
         print('Took: {0} seconds'.format(time.time() - start_time))
         return step
 
 
+
  #### EVALUATE ####
-    def evaluate(self, sess, step, epoch):
+    def evaluate(self, sess, writer, step, epoch):
         """
         Evaluate once from test dataset
         """
@@ -229,15 +225,25 @@ class Model(object):
         start_time = time.time()
         sess.run(self.val_init) #initazlize proper dataset
         self.is_training = False #switch dropout off
-        total_loss = 0
         iou = 0
+        total_loss = 0
         eval_step = 0
+        eval_iou_t = tf.placeholder(dtype=tf.float32)
+        eval_summary_op = tf.summary.scalar("val/iou", eval_iou_t)
         try:
-            #test, get loss then do summary
-            l, _, new_pred, new_label = sess.run([self.loss_op, self.summary_op, self.loc_pred, self.target_loc])
-            iou += my_tools.box_iou(new_pred, new_label)
-            total_loss +=l
-            eval_step+=1
+            while True:
+                #test, get loss then do summary
+                l, new_pred, new_label = sess.run([self.loss_op, self.loc_pred, self.target_loc])
+                eval_step+=1
+                eval_iou = my_tools.box_iou(new_pred, new_label)
+
+                eval_summary = sess.run(eval_summary_op, feed_dict={eval_iou_t:eval_iou})
+                writer.add_summary(eval_summary, global_step = eval_step)
+
+
+
+                iou += eval_iou
+                total_loss +=l
         except tf.errors.OutOfRangeError:
             pass
         #Print some info
@@ -248,67 +254,82 @@ class Model(object):
 
 
 ###TEST
-    def test_after_train(self,sess):
+    def test_after_train(self, sess, writer):
         sess.run(self.test_init) #initialize proper datasets
         self.is_training = False
-        iou = 0
+        test_iou = 0
         try:
-            new_pred, new_label = sess.run([self.loc_pred, self.target_loc])
-            iou = my_tools.box_iou(new_pred, new_label)
-            print("Test dataset IoU: {0}".format(iou))
+            while True:
+                new_pred, new_label, index = sess.run([self.loc_pred, self.target_loc, self.index])
+                iou = my_tools.box_iou(new_pred, new_label)
+                print("Test dataset IoU: {0}".format(iou))
+                if (iou > 0.5):
+                    image = my_tools.plot_result_on_img(index, new_pred)
+                    image_tensor = tf.image.convert_image_dtype(image,dtype=tf.uint8)
+                    image_tensor = tf.reshape(image_tensor,[1,256,256,4])
+                    test_summary_op = tf.summary.image("IoU {0}: ".format(iou), image_tensor)
+                    test_summary = sess.run(test_summary_op)
+                    writer.add_summary(test_summary)
+                test_iou+=iou
         except tf.errors.OutOfRangeError:
             pass
-
+        print("Average Test IoU: {}".format(test_iou))
 
 
 #### TO DO ####
     def train_n_times(self,result_dir, n_times):
         """
-        Main training handling funciton
+        training handling funciton
         """
         #Open session, required for tensorflow
-        print("Starting Session")
+        print("### Starting Session ###")
         with tf.Session() as sess:
-            with self.writer.as_default():
 
-                #Creating save for model session for future saving and restoring model
-                saver = tf.train.Saver()
+            #Creating summary writer
+            writer = tf.summary.FileWriter(self.ckpt_dir)
 
-                #Check for checkpoint, if present load variables from it
-                ckpt = tf.train.get_checkpoint_state(self.result_dir)
-                if ckpt and ckpt.model_checkpoint_path:
-                    #if ckpt found load it and load global step
-                    saver.restore(sess, ckpt.model_checkpoint_path)
-                    print("Found checkpoint")
-                    step = int(os.path.basename(ckpt.model_checkpoint_path).split('-')[1])
+            #Add graph
+            writer.add_graph(tf.get_default_graph())
 
-                else:
-                    #If no checkpoint present, run clean session with clean initialization of variables
-                    init = tf.global_variables_initializer()
-                    sess.run(init)
-                    step = 0
+            #Creating save for model session for future saving and restoring model
+            saver = tf.train.Saver()
 
-                #initialize writer for data summary
-                tf.contrib.summary.initialize(graph=tf.get_default_graph())
+            #Check for checkpoint, if present load variables from it
+            ckpt = tf.train.get_checkpoint_state(self.result_dir)
+            if ckpt and ckpt.model_checkpoint_path:
+                #if ckpt found load it and load global step
+                saver.restore(sess, ckpt.model_checkpoint_path)
+                print("# Found checkpoint")
+                step = int(os.path.basename(ckpt.model_checkpoint_path).split('-')[1])
 
-                print("Current step: {0}".format(step))
-                #Training
-                print("Starting Training")
-                for epoch in range(1,n_times+1):
-                    try:
-                        #Train one epoch
-                        step = self.train_one_time(sess, self.ckpt_dir, saver, step, epoch)
-                        #Evaluate learning
-                        self.evaluate(sess,step,epoch)
-                    except KeyboardInterrupt:
-                        print("keyboard interrupt")
-                        pass
-                self.test_after_train(sess)
-                print("Closing session and saving results")
-                print(self.global_step.eval(), step)
-                #Save variables
-                saver.save(sess, self.ckpt_dir, global_step = step)
-                #Make sure that everything is recorded by writer
-                self.writer.flush()
+            else:
+                #If no checkpoint present, run clean session with clean initialization of variables
+                init = tf.global_variables_initializer()
+                sess.run(init)
+                step = 0
 
-        print("Closed summary, work finnished")
+            print("Current step: {0}".format(step))
+            #Training
+            print("### Starting Training ###")
+            for epoch in range(1,n_times+1):
+                try:
+                    #Train one epoch
+                    step = self.train_one_time(sess, writer, self.ckpt_dir, saver, step, epoch)
+                    #Evaluate learning
+                    self.evaluate(sess, writer, step,epoch)
+                except KeyboardInterrupt:
+                    print("keyboard interrupt")
+                    pass
+            print("### Testing netowrk ###")
+            self.test_after_train(sess, writer)
+            print("Closing session and saving results")
+            print(self.global_step.eval(), step)
+            #Save variables
+            saver.save(sess, self.ckpt_dir, global_step = step)
+            #Make sure that everything is recorded by writer
+
+            writer.flush()
+            #writer.add_graph(graph)
+            writer.close()
+
+        print("###Closed summary, work finnished###")
