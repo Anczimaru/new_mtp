@@ -80,12 +80,12 @@ def box_iou(boxA, boxB):
 
 	interArea = max(0, xB - xA) * max(0, yB - yA)
 
-	boxAArea = (boxA[2] - boxA[0]) * (boxA[1] - boxA[3])
-	boxBArea = (boxB[2] - boxB[0]) * (boxB[1] - boxB[3])
+	boxAArea = (boxA[2] - boxA[0]+1) * (boxA[3] - boxA[1]+1)
+	boxBArea = (boxB[2] - boxB[0]+1) * (boxB[3] - boxB[1]+1)
 
 	union = float(boxAArea + boxBArea - interArea)
 
-	return interArea/(union + 0.0001)
+	return interArea/(union + 0.0001) #added epsilon for safer calculations
 
 #Define wrappers for memmory loading funcitons and variables by model.py
 
