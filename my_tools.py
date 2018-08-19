@@ -73,15 +73,15 @@ def plot_result_on_img(n, label):
 
 def box_iou(boxA, boxB):
 
-	xA = max(boxA[0], boxB[0])
-	yA = max(boxA[1], boxB[1])
-	xB = min(boxA[2], boxB[2])
-	yB = min(boxA[3], boxB[3])
+	xA = max(boxA[0], boxB[0]) #x11, x21, top right conrner of intersection
+	yA = max(boxA[1], boxB[1]) #y11, y21
+	xB = min(boxA[2], boxB[2]) #x12 x22
+	yB = min(boxA[3], boxB[3]) #y12 y22    #bot left conrener of intersection
 
-	interArea = max(0, xB - xA) * max(0, yB - yA)
+	interArea = max(0, xB - xA) * max(0, yB - yA + 1)
 
-	boxAArea = (boxA[2] - boxA[0]+1) * (boxA[3] - boxA[1]+1)
-	boxBArea = (boxB[2] - boxB[0]+1) * (boxB[3] - boxB[1]+1)
+	boxAArea = (boxA[2] - boxA[0]) * (boxA[3] - boxA[1])
+	boxBArea = (boxB[2] - boxB[0]) * (boxB[3] - boxB[1])
 
 	union = float(boxAArea + boxBArea - interArea)
 

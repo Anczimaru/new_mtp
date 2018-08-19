@@ -33,7 +33,7 @@ RESULT_DIR = "results"
 #Data generation settings
 LABEL_ORG = os.path.join(DATA_DIR, "label_org.npy") #orginal labels
 TFRECORD_NAMES = ['train.tfrecords','test.tfrecords','validation.tfrecords']
-GEN_NUM_PIC = 1000
+GEN_NUM_PIC = 100
 PUT_EFFECTS = True
 ONLY_INJECTED = True
 MU = 1 #multiplier for label fie

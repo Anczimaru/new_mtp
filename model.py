@@ -14,12 +14,12 @@ class Model(object):
     """
 
 ### INITIALIZATION ####
-    def __init__(self, params, log_dir,ckpt_dir):
+    def __init__(self, params, ckpt, log_dir):
         with tf.name_scope("initialize"):
             # main initialization for whole model, reads directed params, creates neccesary variables
             #Variables
             self.result_dir = log_dir
-            self.ckpt_dir = ckpt_dir
+            self.ckpt_dir = ckpt
             self.img_size = params["img_size"]
             self.num_channels = params["num_channels"]
             self.num_classes = params["num_classes"]
@@ -190,25 +190,27 @@ class Model(object):
         total_loss = 0
         num_batches = 0
         recent_loss = 0
-        self.training = True
+        self.training = True #dropout on
         try :
             while True:
-                #train,get loss op, then gen summary, then optimize
-                l, summary, _ = sess.run([self.loss_op, self.summary_op, self.optimize])
-                writer.add_summary(summary, global_step=step)
-                total_loss += l
-                num_batches += 1
-                recent_loss +=l
-                step+=1
-                if (step) % self.write_step == 0:
-                    print('{0}: Avg loss for recent steps {1}'.format(self.global_step.eval(), recent_loss/self.write_step))
-                    recent_loss = 0
+                try:
+                    #train,get loss op, then gen summary, then optimize
+                    l, summary, _ = sess.run([self.loss_op, self.summary_op, self.optimize])
+                    writer.add_summary(summary, global_step=step)
+                    total_loss += l
+                    num_batches += 1
+                    recent_loss +=l
+                    step+=1
+                    if (step) % self.write_step == 0:
+                        print('{0}: Avg loss for recent steps {1}'.format(self.global_step.eval(), recent_loss/self.write_step))
+                        recent_loss = 0
+                except KeyboardInterrupt:
+                    print("keyboard interrupt")
+                    break
         except tf.errors.OutOfRangeError:
             pass
-        except KeyboardInterrupt:
-            print("keyboard interrupt")
-            pass
-        saver.save(sess, ckpt_dir, global_step = self.global_step.eval()) #save checkpoint
+
+        saver.save(sess, self.ckpt_dir, global_step = self.global_step.eval()) #save checkpoint
         #Print some info
         print('Average loss at epoch {0}: {1}'.format(epoch, total_loss/num_batches))
         print('Took: {0} seconds'.format(time.time() - start_time))
@@ -258,26 +260,32 @@ class Model(object):
         sess.run(self.test_init) #initialize proper datasets
         self.is_training = False
         test_iou = 0
+        test_step = 0
+        hit = 0
+        miss = 0
         try:
             while True:
+                test_step+=1
                 new_pred, new_label, index = sess.run([self.loc_pred, self.target_loc, self.index])
                 iou = my_tools.box_iou(new_pred, new_label)
-                print("Test dataset IoU: {0}".format(iou))
-                if (iou > 0.5):
+                #print("Test dataset IoU: {0}".format(iou))
+                if (iou > 0.7):
+                    hit+=1
                     image = my_tools.plot_result_on_img(index, new_pred)
                     image_tensor = tf.image.convert_image_dtype(image,dtype=tf.uint8)
                     image_tensor = tf.reshape(image_tensor,[1,256,256,4])
                     test_summary_op = tf.summary.image("IoU {0}: ".format(iou), image_tensor)
                     test_summary = sess.run(test_summary_op)
                     writer.add_summary(test_summary)
+                else: miss+=1
                 test_iou+=iou
         except tf.errors.OutOfRangeError:
             pass
-        print("Average Test IoU: {}".format(test_iou))
-
+        print("Average Test IoU: {}".format(test_iou/test_step))
+        print("Accuracy during test: {}%".format(hit/test_step*100))
 
 #### TO DO ####
-    def train_n_times(self,result_dir, n_times):
+    def train_n_times(self, n_times):
         """
         training handling funciton
         """
@@ -286,7 +294,7 @@ class Model(object):
         with tf.Session() as sess:
 
             #Creating summary writer
-            writer = tf.summary.FileWriter(self.ckpt_dir)
+            writer = tf.summary.FileWriter(self.result_dir)
 
             #Add graph
             writer.add_graph(tf.get_default_graph())
@@ -319,13 +327,13 @@ class Model(object):
                     self.evaluate(sess, writer, step,epoch)
                 except KeyboardInterrupt:
                     print("keyboard interrupt")
-                    pass
+                    break
             print("### Testing netowrk ###")
             self.test_after_train(sess, writer)
             print("Closing session and saving results")
             print(self.global_step.eval(), step)
             #Save variables
-            saver.save(sess, self.ckpt_dir, global_step = step)
+            saver.save(sess, self.ckpt_dir, global_step = self.global_step.eval())
             #Make sure that everything is recorded by writer
 
             writer.flush()

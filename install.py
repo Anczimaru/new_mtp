@@ -8,7 +8,6 @@ if x =="y":
     os.system("pip3 install tensorflow")
     os.system("pip3 install Pillow")
     os.system("pip3 install imageio")
-    os.system("pip3 install functools")
     os.system("pip3 install rarfile")
     os.system('pip3 install opencv-python')
     os.system('pip3 install matplotlib')

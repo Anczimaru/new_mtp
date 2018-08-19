@@ -244,12 +244,17 @@ def make_data(src_dir,dst_dir, put_effect=True, limit_total = 50, file_ext='.png
 #Needs photos with
 #in first part it creates injected photos, in second copies photos
 #Mark with 1 in first coulumn tells that injection is present, in second that it is absent(one-hot code)
-    for f in os.listdir(src_dir):
+    i=0
+    while True:
+        list = os.listdir(src_dir)
+        f = list[i]
+        if i ==  (len(list)-1):
+            i = 0
         #get name of imported background pic
         src_file = os.path.join(src_dir,f)
         #check if file is picture with .png extension
+        if n == limit_total: break
         if f.endswith(file_ext):
-            if n == limit_total: break
 
 
             #PHOTO WITH INJECTION
@@ -270,6 +275,7 @@ def make_data(src_dir,dst_dir, put_effect=True, limit_total = 50, file_ext='.png
             #Check progress
             if (n%(limit_total/10)==0):
                 print("done {}%".format((n/limit_total)*100))
+            i+=1
         #save file with labels to "data" dir
         label_dst = config.LABEL_ORG
         label.astype(int)

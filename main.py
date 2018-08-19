@@ -115,11 +115,12 @@ def main(debug_mode = 0):
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
 
+    ckpt = os.path.join(log_dir,"checkpoint")
 
 
 ######Initialization of Model, load all Model functions returning variables
-    model = Model(params,log_dir,log_dir) # Initialize model
-    model.train_n_times(log_dir, n_times) #run training session
+    model = Model(params, ckpt, log_dir) # Initialize model
+    model.train_n_times(n_times) #run training session
 
 
 
